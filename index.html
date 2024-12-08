@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bingo Cards</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        
+        .print-container {
+            height: 297mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            break-after: page;
+            padding-top: 0mm;
+            box-sizing: border-box;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: white;
+        }
+        
+        .bingo-card {
+            width: 160mm;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            aspect-ratio: 1 / 1;
+            border: 1px solid black;
+        }
+        
+        .bingo-square {
+            border: 1px solid black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12pt;
+            text-align: center;
+            aspect-ratio: 1;
+            padding: 1rem;
+            word-wrap: break-word;
+            overflow: hidden;
+        }
+        
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .controls {
+                display: none;
+            }
+            .print-container {
+                page-break-after: always;
+                break-after: page;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <input type="file" id="fileInput" accept=".json">
+        <button onclick="window.print()">Print Cards</button>
+    </div>
+
+    <script>
+        function clearCards() {
+            const containers = document.querySelectorAll('.print-container');
+            containers.forEach(container => container.remove());
+        }
+
+        function generateBingoCard(cardData) {
+            const printContainer = document.createElement('div');
+            printContainer.className = 'print-container';
+            
+            const bingoCard = document.createElement('div');
+            bingoCard.className = 'bingo-card';
+            
+            cardData.forEach(text => {
+                const square = document.createElement('div');
+                square.className = 'bingo-square';
+                square.textContent = text;
+                bingoCard.appendChild(square);
+            });
+            
+            printContainer.appendChild(bingoCard);
+            document.body.appendChild(printContainer);
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    clearCards();
+                    
+                    // Generate a card for each array in cards
+                    data.cards.forEach(cardData => {
+                        generateBingoCard(cardData);
+                    });
+                } catch (error) {
+                    console.error('Error parsing JSON:', error);
+                    alert('Error loading JSON file. Please check the file format.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+    </script>
+</body>
+</html>
