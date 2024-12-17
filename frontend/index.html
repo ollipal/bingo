@@ -98,6 +98,18 @@
     </div>
 
     <script>
+        
+      fetch('https://bingo-4at5.onrender.com')
+        .then(response => response.text())
+        .then(data => {
+          console.log(data);
+        })
+        .catch(error => {
+          console.error('Error fetching bingo cards:', error);
+          alert('Error loading bingo cards from server.');
+        });
+
+
         function clearCards() {
             const containers = document.querySelectorAll('.print-container');
             containers.forEach(container => container.remove());
