@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: bingo-backend
+    env: python
+    rootDir: backend
+    buildCommand: ./build.sh
+    startCommand: ./start.sh
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
