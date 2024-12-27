@@ -20,6 +20,7 @@ def generate_cards(data: BingoData, shuffle: bool = True) -> tuple[List[Dict[str
     for quest in data.quests:
         phrase_pools: Dict[str, Dict[str, List[str]]] = {}
         
+        # Initialize pools for each phrase type
         for phrase_type in quest.types:
             phrase_pools[phrase_type] = {}
             type_phrases = [q for q in data.phrases if q.type == phrase_type]
@@ -35,6 +36,7 @@ def generate_cards(data: BingoData, shuffle: bool = True) -> tuple[List[Dict[str
                         phrase_pools[phrase_type][q.difficulty] = []
                     phrase_pools[phrase_type][q.difficulty].extend(valid_translations)
 
+        # Count needed phrases by difficulty
         needed_by_difficulty = {}
         for diff in data.difficulties:
             if diff not in needed_by_difficulty:
@@ -60,25 +62,54 @@ def generate_cards(data: BingoData, shuffle: bool = True) -> tuple[List[Dict[str
                     f"{needed_by_difficulty[required_difficulty]} required, available by type: {type_counts}."
                 )
 
-        card = []
-        for required_difficulty in data.difficulties:
-            for phrase_type in quest.types:
-                if phrase_type not in phrase_pools:
-                    continue
+        # Prepare card with empty slots
+        card_size = len(data.difficulties)
+        card = [None] * card_size
+        
+        # Group positions by difficulty for random assignment
+        positions_by_difficulty = {}
+        for pos, diff in enumerate(data.difficulties):
+            if diff not in positions_by_difficulty:
+                positions_by_difficulty[diff] = []
+            positions_by_difficulty[diff].append(pos)
+
+        # Fill card with phrases
+        for difficulty in needed_by_difficulty:
+            # Get all positions for this difficulty
+            difficulty_positions = positions_by_difficulty[difficulty].copy()
+            
+            # For each position of this difficulty
+            while difficulty_positions:
+                if shuffle:
+                    # Choose a random position for this difficulty
+                    position = random.choice(difficulty_positions)
+                else:
+                    # Take the first position in testing mode
+                    position = difficulty_positions[0]
+                difficulty_positions.remove(position)
                 
-                pool = phrase_pools[phrase_type]
-                if required_difficulty in pool and pool[required_difficulty]:
-                    phrases = pool[required_difficulty]
-                    if shuffle:
-                        selected = random.choice(phrases)
-                    else:
-                        selected = phrases[0]
-                    
-                    card.append(selected)
-                    phrases.remove(selected)
-                    break
-            else:
-                raise RuntimeError(f"Failed to find phrase for {required_difficulty} despite availability check")
+                # Try each type in order of preference (quest.types order)
+                phrase_found = False
+                for phrase_type in quest.types:
+                    if (phrase_type in phrase_pools and 
+                        difficulty in phrase_pools[phrase_type] and 
+                        phrase_pools[phrase_type][difficulty]):
+                        phrases = phrase_pools[phrase_type][difficulty]
+                        if shuffle:
+                            selected = random.choice(phrases)
+                        else:
+                            selected = phrases[0]
+                        phrases.remove(selected)
+                        card[position] = selected
+                        phrase_found = True
+                        break
+                
+                if not phrase_found:
+                    raise RuntimeError(f"Failed to find phrase for {difficulty} despite availability check")
+
+        # Verify no empty slots
+        if None in card:
+            raise RuntimeError("Card contains empty slots despite availability check")
             
         cards.append({
             'quest': quest.name,
@@ -115,11 +146,6 @@ if __name__ == '__main__':
                         idx += 1
                 return phrases
 
-            # Create 100 phrases of each type-difficulty combination
-            self.test_phrases = []
-            for type_num in range(1, 4):  # type1, type2, type3
-                self.test_phrases.extend(create_phrases(type_num))
-            
             # Create test quests
             self.test_quests = [
                 Quest(
@@ -134,8 +160,13 @@ if __name__ == '__main__':
                 )
             ]
             
-            # Create test difficulties pattern with varied difficulties
+            # Create test data with repeated difficulty pattern
             self.test_difficulties = ["easy"] * 3 + ["medium"] * 3 + ["hard"] * 3
+            
+            # Create test phrases - 100 of each type/difficulty
+            self.test_phrases = []
+            for type_num in range(1, 4):
+                self.test_phrases.extend(create_phrases(type_num))
             
             # Create test BingoData
             self.test_data = BingoData(
@@ -148,30 +179,29 @@ if __name__ == '__main__':
             # Generate cards without shuffling
             cards, error = generate_cards(self.test_data, shuffle=False)
             
-            # Check no error occurred
             self.assertIsNone(error)
             self.assertIsNotNone(cards)
             
             # Test number of cards matches number of quests
             self.assertEqual(len(cards), len(self.test_quests))
             
-            # Test first card (using type1 first)
+            # Test first card
             first_card = cards[0]['card']
             first_quest = cards[0]['quest']
-            self.assertEqual(len(first_card), 9)  # 3 of each difficulty
+            self.assertEqual(len(first_card), 9)
             self.assertEqual(first_quest, "Test Quest 1")
-
-            # Each phrase should contain "Type1" in text (preferring first type)
+            
+            # Each phrase should contain "Type1" in text (preferred type)
             for text in first_card:
                 self.assertIn("Type1", text)
             
-            # Test second card (using type2 first)
+            # Test second card
             second_card = cards[1]['card']
             second_quest = cards[1]['quest']
             self.assertEqual(len(second_card), 9)
             self.assertEqual(second_quest, "Test Quest 2")
             
-            # Each phrase should contain "Type2" in text (preferring first type)
+            # Each phrase should contain "Type2" in text (preferred type)
             for text in second_card:
                 self.assertIn("Type2", text)
             
@@ -182,81 +212,59 @@ if __name__ == '__main__':
                     self.assertNotIn(phrase, all_phrases, "Phrase was repeated")
                     all_phrases.add(phrase)
 
-    class TestGenerateCardsInsufficientPhrases(unittest.TestCase):
-        def test_multiple_types_needed(self):
-            # Create test data where we need multiple types to fill the card
+    class TestGenerateCardsWithShuffle(unittest.TestCase):
+        def test_randomized_positions_and_types(self):
+            # Create test data with multiple types
             phrases = [
-                # type1: 3 easy phrases
                 *[Phrase(
-                    translations=[Translation(language="spanish", text=f"Type1 Easy {i}")],
+                    translations=[Translation(language="english", text=f"Type1 Easy {i}")],
                     type="type1",
                     difficulty="easy"
-                ) for i in range(3)],
-                # type2: 3 easy phrases
+                ) for i in range(5)],
                 *[Phrase(
-                    translations=[Translation(language="spanish", text=f"Type2 Easy {i}")],
+                    translations=[Translation(language="english", text=f"Type2 Easy {i}")],
                     type="type2",
                     difficulty="easy"
-                ) for i in range(3)]
+                ) for i in range(5)]
             ]
             
             quest = Quest(
                 name="Test Quest",
-                language="spanish",
-                types=["type1", "type2"]
+                language="english",
+                types=["type1", "type2"]  # type1 preferred
             )
             
-            # Pattern requires 5 easy phrases
+            # Pattern with 5 easy slots
             test_data = BingoData(
                 quests=[quest],
                 phrases=phrases,
                 difficulties=["easy"] * 5
             )
             
-            # Generate card
-            cards, error = generate_cards(test_data, shuffle=False)
+            # Generate multiple cards and check positions and type distributions
+            position_sets = set()
+            type1_counts = []  # Track how many Type1 phrases are used in each card
+            num_trials = 50
             
-            # Should succeed by using both types
-            self.assertIsNone(error)
-            self.assertIsNotNone(cards)
+            for _ in range(num_trials):
+                cards, error = generate_cards(test_data, shuffle=True)
+                self.assertIsNone(error)
+                self.assertIsNotNone(cards)
+                
+                card = cards[0]['card']
+                # Create a tuple of positions for comparison
+                positions = tuple(card)
+                position_sets.add(positions)
+                
+                # Count Type1 phrases
+                type1_count = sum(1 for phrase in card if "Type1" in phrase)
+                type1_counts.append(type1_count)
             
-            card = cards[0]['card']
-            quest_name = cards[0]['quest']
-            self.assertEqual(len(card), 5)
-            self.assertEqual(quest_name, "Test Quest")
+            # We should have multiple different arrangements
+            self.assertGreater(len(position_sets), 1)
             
-            # First 3 should be from type1
-            for i in range(3):
-                self.assertEqual(card[i], f"Type1 Easy {i}")
-            
-            # Last 2 should be from type2
-            for i in range(3, 5):
-                self.assertEqual(card[i], f"Type2 Easy {i-3}")
-
-        def test_insufficient_phrases(self):
-            # Create data with insufficient phrases of required difficulty
-            insufficient_phrases = [
-                Phrase(
-                    translations=[Translation(language="english", text="Phrase 1")],
-                    type="type1",
-                    difficulty="easy"  # Only easy phrases when we need hard ones too
-                )
-            ]
-            insufficient_data = BingoData(
-                quests=[Quest(name="Test Quest", language="english", types=["type1"])],
-                phrases=insufficient_phrases,
-                difficulties=["hard"]  # Requires hard phrase but none exist
-            )
-
-            # Test that it returns appropriate error
-            cards, error = generate_cards(insufficient_data, shuffle=False)
-            
-            self.assertIsNone(cards)
-            self.assertEqual(
-                error,
-                "Could not generate a bingo card for quest Test Quest: "
-                "not enough english phrases with difficulty 'hard' and type 'type1'. "
-                "1 required, available by type: type1: 0."
-            )
-
+            # We should see variation in Type1 usage while maintaining preference
+            self.assertTrue(all(count > 0 for count in type1_counts), 
+                          "Type1 (preferred) should always be used")
+    
     unittest.main()

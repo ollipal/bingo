@@ -102,4 +102,4 @@ envVars: PYTHON_VERSION=3.11.11
 
 
 
-`curl -X POST -F "file=@bingo.xlsx" http://localhost:5000/generate-cards`
+`curl -X POST -F "file=@Personalized Wedding Bingo.xlsx" http://localhost:5000/generate-cards`
