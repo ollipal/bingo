@@ -1,6 +1,6 @@
 from typing import List
 from pydantic import ValidationError
-from schemas import BingoData, Quest, Question
+from schemas import BingoData, Quest, Phrase
 from io import BytesIO
 from openpyxl import load_workbook
 
@@ -14,7 +14,7 @@ def extract_bingo_data(file_content: bytes) -> tuple[BingoData | None, str | Non
         and error is an error message string if any error occurred.
     """
     
-    required_sheets = ['quests', 'questions', 'pattern']
+    required_sheets = ['quests', 'phrases', 'pattern']
     
     try:
         # Load workbook from bytes
@@ -28,7 +28,7 @@ def extract_bingo_data(file_content: bytes) -> tuple[BingoData | None, str | Non
         # Process each sheet
         processed_data = {
             'quests': [],
-            'questions': [],
+            'phrases': [],
             'difficulties': []
         }
 
@@ -44,7 +44,7 @@ def extract_bingo_data(file_content: bytes) -> tuple[BingoData | None, str | Non
                     row_data[header.replace(types_header, 'types')] = value
             return row_data
 
-        def process_question_row(headers, row):
+        def process_phrase_row(headers, row):
             translations = []
             other_fields = {}
             for header, cell in zip(headers, row):
@@ -99,9 +99,9 @@ def extract_bingo_data(file_content: bytes) -> tuple[BingoData | None, str | Non
                         processed_rows.append(row_data)
             return processed_rows
 
-        # Process quests and questions
+        # Process quests and phrases
         processed_data['quests'] = process_sheet('quests', process_quest_row, 'name')
-        processed_data['questions'] = process_sheet('questions', process_question_row, 'difficulty')
+        processed_data['phrases'] = process_sheet('phrases', process_phrase_row, 'difficulty')
 
         # Board processing results
         difficulties, error = process_pattern_sheet(wb['pattern'])
@@ -113,7 +113,7 @@ def extract_bingo_data(file_content: bytes) -> tuple[BingoData | None, str | Non
         try:
             validated_data = BingoData(
                 quests=processed_data['quests'],
-                questions=processed_data['questions'],
+                phrases=processed_data['phrases'],
                 difficulties=processed_data['difficulties']
             )
             return validated_data, None
@@ -123,7 +123,7 @@ def extract_bingo_data(file_content: bytes) -> tuple[BingoData | None, str | Non
             location = error['loc']
             
             if len(location) >= 2:
-                data_type = location[0]  # quests, questions, or difficulties
+                data_type = location[0]  # quests, phrases, or difficulties
                 index = location[1] if isinstance(location[1], int) else None
                 field = '.'.join(str(loc) for loc in location[2:]) if len(location) > 2 else None
                 

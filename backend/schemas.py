@@ -5,7 +5,7 @@ class Translation(BaseModel):
     language: str
     text: str
 
-class Question(BaseModel):
+class Phrase(BaseModel):
     translations: List[Translation]
     difficulty: str
     type: str
@@ -20,5 +20,5 @@ BingoCard = List[str]
 
 class BingoData(BaseModel):
     quests: List[Quest]
-    questions: List[Question]
+    phrases: List[Phrase]
     difficulties: List[str]

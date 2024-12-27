@@ -1,5 +1,5 @@
 from typing import List, Dict, Tuple, Set
-from schemas import BingoData, Translation, BingoCard, Quest, Question
+from schemas import BingoData, Translation, BingoCard, Quest, Phrase
 import random
 
 def generate_cards(data: BingoData, shuffle: bool = True) -> tuple[List[Dict[str, any]] | None, str | None]:
@@ -7,8 +7,8 @@ def generate_cards(data: BingoData, shuffle: bool = True) -> tuple[List[Dict[str
     Generate bingo cards based on the provided data.
     
     Args:
-        data: BingoData containing quests, questions and difficulties pattern
-        shuffle: Whether to shuffle the questions or maintain order (for testing)
+        data: BingoData containing quests, phrases and difficulties pattern
+        shuffle: Whether to shuffle the phrases or maintain order (for testing)
         
     Returns:
         Tuple of (cards, error) where:
@@ -18,22 +18,22 @@ def generate_cards(data: BingoData, shuffle: bool = True) -> tuple[List[Dict[str
     cards = []
     
     for quest in data.quests:
-        question_pools: Dict[str, Dict[str, List[str]]] = {}
+        phrase_pools: Dict[str, Dict[str, List[str]]] = {}
         
-        for question_type in quest.types:
-            question_pools[question_type] = {}
-            type_questions = [q for q in data.questions if q.type == question_type]
+        for phrase_type in quest.types:
+            phrase_pools[phrase_type] = {}
+            type_phrases = [q for q in data.phrases if q.type == phrase_type]
             
-            for q in type_questions:
+            for q in type_phrases:
                 valid_translations = [
                     trans.text 
                     for trans in q.translations 
                     if trans.language == quest.language
                 ]
                 if valid_translations:
-                    if q.difficulty not in question_pools[question_type]:
-                        question_pools[question_type][q.difficulty] = []
-                    question_pools[question_type][q.difficulty].extend(valid_translations)
+                    if q.difficulty not in phrase_pools[phrase_type]:
+                        phrase_pools[phrase_type][q.difficulty] = []
+                    phrase_pools[phrase_type][q.difficulty].extend(valid_translations)
 
         needed_by_difficulty = {}
         for diff in data.difficulties:
@@ -44,41 +44,41 @@ def generate_cards(data: BingoData, shuffle: bool = True) -> tuple[List[Dict[str
         # Check availability before starting to fill card
         for required_difficulty in needed_by_difficulty:
             total_available = sum(
-                len(question_pools.get(qtype, {}).get(required_difficulty, []))
+                len(phrase_pools.get(qtype, {}).get(required_difficulty, []))
                 for qtype in quest.types
             )
             if total_available < needed_by_difficulty[required_difficulty]:
                 by_type = {
-                    qtype: len(question_pools.get(qtype, {}).get(required_difficulty, []))
+                    qtype: len(phrase_pools.get(qtype, {}).get(required_difficulty, []))
                     for qtype in quest.types
                 }
                 type_counts = ", ".join(f"{qtype}: {count}" for qtype, count in by_type.items())
                 or_types = "' or '".join(quest.types)
                 return None, (
                     f"Could not generate a bingo card for quest {quest.name}: "
-                    f"not enough {quest.language} questions with difficulty '{required_difficulty}' and type '{or_types}'. "
+                    f"not enough {quest.language} phrases with difficulty '{required_difficulty}' and type '{or_types}'. "
                     f"{needed_by_difficulty[required_difficulty]} required, available by type: {type_counts}."
                 )
 
         card = []
         for required_difficulty in data.difficulties:
-            for question_type in quest.types:
-                if question_type not in question_pools:
+            for phrase_type in quest.types:
+                if phrase_type not in phrase_pools:
                     continue
                 
-                pool = question_pools[question_type]
+                pool = phrase_pools[phrase_type]
                 if required_difficulty in pool and pool[required_difficulty]:
-                    questions = pool[required_difficulty]
+                    phrases = pool[required_difficulty]
                     if shuffle:
-                        selected = random.choice(questions)
+                        selected = random.choice(phrases)
                     else:
-                        selected = questions[0]
+                        selected = phrases[0]
                     
                     card.append(selected)
-                    questions.remove(selected)
+                    phrases.remove(selected)
                     break
             else:
-                raise RuntimeError(f"Failed to find question for {required_difficulty} despite availability check")
+                raise RuntimeError(f"Failed to find phrase for {required_difficulty} despite availability check")
             
         cards.append({
             'quest': quest.name,
@@ -94,31 +94,31 @@ if __name__ == '__main__':
         def setUp(self):
             # Create test data - generate translations with type in the text
             self.test_translations_en = [
-                Translation(language="english", text=f"Type{t} {d} Question {i}")
+                Translation(language="english", text=f"Type{t} {d} Phrase {i}")
                 for t in range(1, 4)  # 3 types 
                 for d in ["easy", "medium", "hard"]
-                for i in range(100)  # 100 questions per type-difficulty combo
+                for i in range(100)  # 100 phrases per type-difficulty combo
             ]
             
-            # Create questions with different difficulties - 100 each type, evenly distributed
-            def create_questions(type_num: int) -> List[Question]:
-                questions = []
+            # Create phrases with different difficulties - 100 each type, evenly distributed
+            def create_phrases(type_num: int) -> List[Phrase]:
+                phrases = []
                 idx = 0
                 for difficulty in ["easy", "medium", "hard"]:
                     for _ in range(100):
-                        trans_idx = (type_num - 1) * 300 + idx  # 300 = 3 difficulties * 100 questions
-                        questions.append(Question(
+                        trans_idx = (type_num - 1) * 300 + idx  # 300 = 3 difficulties * 100 phrases
+                        phrases.append(Phrase(
                             translations=[self.test_translations_en[trans_idx]],
                             type=f"type{type_num}",
                             difficulty=difficulty
                         ))
                         idx += 1
-                return questions
+                return phrases
 
-            # Create 100 questions of each type-difficulty combination
-            self.test_questions = []
+            # Create 100 phrases of each type-difficulty combination
+            self.test_phrases = []
             for type_num in range(1, 4):  # type1, type2, type3
-                self.test_questions.extend(create_questions(type_num))
+                self.test_phrases.extend(create_phrases(type_num))
             
             # Create test quests
             self.test_quests = [
@@ -140,7 +140,7 @@ if __name__ == '__main__':
             # Create test BingoData
             self.test_data = BingoData(
                 quests=self.test_quests,
-                questions=self.test_questions,
+                phrases=self.test_phrases,
                 difficulties=self.test_difficulties
             )
 
@@ -161,7 +161,7 @@ if __name__ == '__main__':
             self.assertEqual(len(first_card), 9)  # 3 of each difficulty
             self.assertEqual(first_quest, "Test Quest 1")
 
-            # Each question should contain "Type1" in text (preferring first type)
+            # Each phrase should contain "Type1" in text (preferring first type)
             for text in first_card:
                 self.assertIn("Type1", text)
             
@@ -171,29 +171,29 @@ if __name__ == '__main__':
             self.assertEqual(len(second_card), 9)
             self.assertEqual(second_quest, "Test Quest 2")
             
-            # Each question should contain "Type2" in text (preferring first type)
+            # Each phrase should contain "Type2" in text (preferring first type)
             for text in second_card:
                 self.assertIn("Type2", text)
             
-            # No question should be repeated between cards
-            all_questions = set()
+            # No phrase should be repeated between cards
+            all_phrases = set()
             for card_data in cards:
-                for question in card_data['card']:
-                    self.assertNotIn(question, all_questions, "Question was repeated")
-                    all_questions.add(question)
+                for phrase in card_data['card']:
+                    self.assertNotIn(phrase, all_phrases, "Phrase was repeated")
+                    all_phrases.add(phrase)
 
-    class TestGenerateCardsInsufficientQuestions(unittest.TestCase):
+    class TestGenerateCardsInsufficientPhrases(unittest.TestCase):
         def test_multiple_types_needed(self):
             # Create test data where we need multiple types to fill the card
-            questions = [
-                # type1: 3 easy questions
-                *[Question(
+            phrases = [
+                # type1: 3 easy phrases
+                *[Phrase(
                     translations=[Translation(language="spanish", text=f"Type1 Easy {i}")],
                     type="type1",
                     difficulty="easy"
                 ) for i in range(3)],
-                # type2: 3 easy questions
-                *[Question(
+                # type2: 3 easy phrases
+                *[Phrase(
                     translations=[Translation(language="spanish", text=f"Type2 Easy {i}")],
                     type="type2",
                     difficulty="easy"
@@ -206,10 +206,10 @@ if __name__ == '__main__':
                 types=["type1", "type2"]
             )
             
-            # Pattern requires 5 easy questions
+            # Pattern requires 5 easy phrases
             test_data = BingoData(
                 quests=[quest],
-                questions=questions,
+                phrases=phrases,
                 difficulties=["easy"] * 5
             )
             
@@ -233,19 +233,19 @@ if __name__ == '__main__':
             for i in range(3, 5):
                 self.assertEqual(card[i], f"Type2 Easy {i-3}")
 
-        def test_insufficient_questions(self):
-            # Create data with insufficient questions of required difficulty
-            insufficient_questions = [
-                Question(
-                    translations=[Translation(language="english", text="Question 1")],
+        def test_insufficient_phrases(self):
+            # Create data with insufficient phrases of required difficulty
+            insufficient_phrases = [
+                Phrase(
+                    translations=[Translation(language="english", text="Phrase 1")],
                     type="type1",
-                    difficulty="easy"  # Only easy questions when we need hard ones too
+                    difficulty="easy"  # Only easy phrases when we need hard ones too
                 )
             ]
             insufficient_data = BingoData(
                 quests=[Quest(name="Test Quest", language="english", types=["type1"])],
-                questions=insufficient_questions,
-                difficulties=["hard"]  # Requires hard question but none exist
+                phrases=insufficient_phrases,
+                difficulties=["hard"]  # Requires hard phrase but none exist
             )
 
             # Test that it returns appropriate error
@@ -255,7 +255,7 @@ if __name__ == '__main__':
             self.assertEqual(
                 error,
                 "Could not generate a bingo card for quest Test Quest: "
-                "not enough english questions with difficulty 'hard' and type 'type1'. "
+                "not enough english phrases with difficulty 'hard' and type 'type1'. "
                 "1 required, available by type: type1: 0."
             )
 
