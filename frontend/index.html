@@ -260,7 +260,10 @@
             const errorBox = document.getElementById('errorBox');
             errorBox.textContent = message;
             errorBox.style.display = 'block';
-            document.getElementById('loadingText').style.display = 'none';
+            clearCards();
+            // Reset file input
+            document.getElementById('fileInput').value = '';
+            printButton.disabled = true;
         }
 
         function hideError() {
