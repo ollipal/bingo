@@ -85,3 +85,21 @@ Common issues:
 
 4. **"Need at least 25 words" error**
    - Verify your `questions.csv` has exactly 25 entries for each language
+
+
+### Cloudflare pages frontend:
+
+Website: https://wedding-bingo.pages.dev
+Build output directory: frontend
+
+### Render.com backend
+
+Backend: https://bingo-4at5.onrender.com
+rootDir: backend
+buildCommand: ./build.sh
+startCommand: ./start.sh
+envVars: PYTHON_VERSION=3.11.11
+
+
+
+`curl -X POST -F "file=@bingo.xlsx" http://localhost:5000/generate-cards`

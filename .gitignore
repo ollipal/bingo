@@ -1,3 +1,4 @@
-english.json
-finnish.json
-spanish.json
+__pycache__/
+*.json
+*.csv
+*.xlsx
