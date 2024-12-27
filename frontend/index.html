@@ -167,6 +167,26 @@
             font-size: 14pt;
         }
 
+        .loading-text {
+            text-align: center;
+            font-size: 18pt;
+            color: #765c48;
+            margin: 40px 0;
+            display: none;
+        }
+
+        @keyframes ellipsis {
+            0% { content: ""; }
+            25% { content: "."; }
+            50% { content: ".."; }
+            75% { content: "..."; }
+        }
+
+        .loading-text::after {
+            content: "";
+            animation: ellipsis 2s infinite;
+        }
+
         @media print {
             body {
                 margin: 0;
@@ -226,17 +246,21 @@
         </ol>
         <div id="errorBox" class="error-box"></div>
     </div>
+    
+    <div id="loadingText" class="loading-text">Generating bingo cards (due to cheap setup this can take up to 60 seconds)</div>
 
     <script>
         function clearCards() {
             const containers = document.querySelectorAll('.print-container');
             containers.forEach(container => container.remove());
+            document.getElementById('loadingText').style.display = 'none';
         }
 
         function showError(message) {
             const errorBox = document.getElementById('errorBox');
             errorBox.textContent = message;
             errorBox.style.display = 'block';
+            document.getElementById('loadingText').style.display = 'none';
         }
 
         function hideError() {
@@ -274,6 +298,7 @@
             if (!file) return;
 
             hideError();
+            document.getElementById('loadingText').style.display = 'block';
             const formData = new FormData();
             formData.append('file', file);
 
