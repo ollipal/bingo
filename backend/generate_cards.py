@@ -2,7 +2,7 @@ from typing import List, Dict, Tuple, Set
 from schemas import BingoData, Translation, BingoCard, Quest, Question
 import random
 
-def generate_cards(data: BingoData, shuffle: bool = True) -> tuple[List[BingoCard] | None, str | None]:
+def generate_cards(data: BingoData, shuffle: bool = True) -> tuple[List[Dict[str, any]] | None, str | None]:
     """
     Generate bingo cards based on the provided data.
     
@@ -12,7 +12,7 @@ def generate_cards(data: BingoData, shuffle: bool = True) -> tuple[List[BingoCar
         
     Returns:
         Tuple of (cards, error) where:
-        - cards is a list of BingoCard if successful, None if failed
+        - cards is a list of dicts with quest name and card content if successful, None if failed
         - error is a string describing the error if failed, None if successful
     """
     cards = []
@@ -80,7 +80,10 @@ def generate_cards(data: BingoData, shuffle: bool = True) -> tuple[List[BingoCar
             else:
                 raise RuntimeError(f"Failed to find question for {required_difficulty} despite availability check")
             
-        cards.append(card)
+        cards.append({
+            'quest': quest.name,
+            'card': card
+        })
     
     return cards, None
 
@@ -153,16 +156,20 @@ if __name__ == '__main__':
             self.assertEqual(len(cards), len(self.test_quests))
             
             # Test first card (using type1 first)
-            first_card = cards[0]
+            first_card = cards[0]['card']
+            first_quest = cards[0]['quest']
             self.assertEqual(len(first_card), 9)  # 3 of each difficulty
+            self.assertEqual(first_quest, "Test Quest 1")
 
             # Each question should contain "Type1" in text (preferring first type)
             for text in first_card:
                 self.assertIn("Type1", text)
             
             # Test second card (using type2 first)
-            second_card = cards[1]
+            second_card = cards[1]['card']
+            second_quest = cards[1]['quest']
             self.assertEqual(len(second_card), 9)
+            self.assertEqual(second_quest, "Test Quest 2")
             
             # Each question should contain "Type2" in text (preferring first type)
             for text in second_card:
@@ -170,8 +177,8 @@ if __name__ == '__main__':
             
             # No question should be repeated between cards
             all_questions = set()
-            for card in cards:
-                for question in card:
+            for card_data in cards:
+                for question in card_data['card']:
                     self.assertNotIn(question, all_questions, "Question was repeated")
                     all_questions.add(question)
 
@@ -213,8 +220,10 @@ if __name__ == '__main__':
             self.assertIsNone(error)
             self.assertIsNotNone(cards)
             
-            card = cards[0]
+            card = cards[0]['card']
+            quest_name = cards[0]['quest']
             self.assertEqual(len(card), 5)
+            self.assertEqual(quest_name, "Test Quest")
             
             # First 3 should be from type1
             for i in range(3):
@@ -241,8 +250,6 @@ if __name__ == '__main__':
 
             # Test that it returns appropriate error
             cards, error = generate_cards(insufficient_data, shuffle=False)
-
-            print(error)
             
             self.assertIsNone(cards)
             self.assertEqual(
