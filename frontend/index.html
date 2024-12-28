@@ -225,20 +225,20 @@
     
     <div class="instructions">
         <ol>
-            <li>Copy the <a href="https://docs.google.com/spreadsheets/d/1yx40I3fyQozHYuHJGIeRyKcAWGyqfz4XX7hdDlGDyL0/copy?usp=sharing" target="_blank">Wedding bingo Google Sheets template</a></li>
-            <li>Add your wedding quests and personlized bingo phrases:
+            <li>Start by copying <a href="https://docs.google.com/spreadsheets/d/1yx40I3fyQozHYuHJGIeRyKcAWGyqfz4XX7hdDlGDyL0/copy?usp=sharing" target="_blank">this Google Sheets template</a></li>
+            <li>Add your wedding quests and personlized bingo phrases to <b>different sheets of the template</b>:
                 <ul style="color: #2c3e50;">
-                    <li>Guests get phrases based on tags. You can add multiple tags to a quest by separating them with a semicolon (;). First tags are preferred when filling the bingo boards.</li>
-                    <li>Add more phrase translations by adding columns that start "translation-"</li>
-                    <li>Not all translations are required to be filled</li>
+                    <li><b>quests-sheet:</b> Add quest name, language and type. You can add multiple types to a quest by separating them with a semicolon (;). First types are preferred when filling the bingo phrases to the boards. You can add as many types as you need.</li>
+                    <li><b>phrases-sheet:</b> Add phrases with necessary translations to bingo boards. More phrase translations can be added by adding columns that start "translation-". Not all translations are required to be filled.</li>
+                    <li><b>pattern-sheet:</b> Mark the required difficulties for each cell of the bingo board. Only 5x5 boards are supported currently.</li>
                 </ul>
             </li>
-            <li>Download as Microsoft Excel (.xlsx) and upload here:
+            <li>From top left corner of Google Sheets, select 'File > Download > Microsoft Excel (.xlsx)' and  upload here:
                 <div class="instruction-button-container">
                     <input type="file" id="fileInput" accept=".xlsx">
                 </div>
             </li>
-            <li>Review the cards below and print:
+            <li>Review the generated cards below and print:
               <div class="instruction-button-container">
                 <button id="printButton" onclick="window.print()" disabled>Print Cards</button>
               </div>
@@ -247,7 +247,7 @@
         <div id="errorBox" class="error-box"></div>
     </div>
     
-    <div id="loadingText" class="loading-text">Generating bingo cards (due to cheap setup this can take up to 60 seconds)</div>
+    <div id="loadingText" class="loading-text">Generating bingo cards (due to cheap setup backend startup can take up to 60 seconds)</div>
 
     <script>
         function clearCards() {
